@@ -1,0 +1,30 @@
+name: gitloader
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0          # To fetch the repo
+  archive: ^3.6.1       # To unzip it
+  path_provider: ^2.1.2 # To store it safely
+  code_forge: 
+    git: https://github.com/bilbilaki/code_forge/
+  # Plus the ones from before:
+  path: ^1.9.0
+  flutter_highlight: ^0.7.0
+  google_fonts: ^6.3.2
+  re_highlight: ^0.0.3
+dependency_overrides: 
+  meta: ^1.17.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
