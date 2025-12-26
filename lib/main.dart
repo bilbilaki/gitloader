@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gitloader/ai/chat_service.dart';
 import 'package:gitloader/code_forge.dart'; // Assuming this contains AdvancedCodeEditor
+import 'package:gitloader/widgets/ai_sidebar.dart';
 import 'package:path/path.dart' as p;
 import 'dart:io';
 
 // Import the logic for downloading/extracting
+import 'ai/config.dart';
 import 'repo_loader.dart';
 
 void main() {
@@ -165,30 +168,56 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
   }
 }
 
-class RepoBrowserScaffold extends StatelessWidget {
-  final String path;
+class RepoBrowserScaffold extends StatefulWidget {
+  final String path; // The Root Path downloaded
   final String title;
 
   const RepoBrowserScaffold({super.key, required this.path, required this.title});
 
   @override
+  State<RepoBrowserScaffold> createState() => _RepoBrowserScaffoldState();
+}
+
+class _RepoBrowserScaffoldState extends State<RepoBrowserScaffold> {
+  ChatService? _chatService;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _initAI();
+  }
+
+  void _initAI() async {
+    // Load config (make sure Config.load() works in your existing config.dart)
+    final cfg = await Config.load();
+    setState(() {
+      // Initialize service with the repo ROOT path
+      _chatService = ChatService(cfg, widget.path);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(fontSize: 18, color: AppColors.textPrimary)),
+        title: Text(widget.title),
         actions: [
+          // Button to toggle AI Sidebar
           IconButton(
-            icon: const Icon(Icons.deselect),
+            icon: const Icon(Icons.chat_bubble_outline),
             onPressed: () {
-              // Logic to clear selections if needed
-              selectedPaths.clear();
-              (context as Element).markNeedsBuild(); // Refresh current view
+              _scaffoldKey.currentState?.openEndDrawer();
             },
-            tooltip: "Clear Selections",
-          )
+          ),
         ],
       ),
-      body: RepoBrowser(path: path),
+      body: RepoBrowser(path: widget.path),
+      // The Sidebar
+      endDrawer: _chatService == null 
+          ? const Drawer(child: Center(child: CircularProgressIndicator()))
+          : AiSidebar(chatService: _chatService!),
     );
   }
 }
