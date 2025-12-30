@@ -8,7 +8,12 @@ import 'package:re_highlight/styles/atom-one-dark.dart';
 
 class AdvancedCodeEditor extends StatefulWidget {
   final File file;
-  const AdvancedCodeEditor({required this.file, super.key});
+  final Widget aisidebar;
+  const AdvancedCodeEditor({
+    required this.file,
+    required this.aisidebar,
+    super.key,
+  });
 
   @override
   State<AdvancedCodeEditor> createState() => _AdvancedCodeEditorState();
@@ -37,7 +42,7 @@ class _AdvancedCodeEditorState extends State<AdvancedCodeEditor> {
     );
 
     return Scaffold(
-            appBar: AppBar(title: Text(p.basename(absFilePath))),
+      appBar: AppBar(title: Text(p.basename(absFilePath))),
 
       backgroundColor: const Color(0xFF282c34),
       body: SafeArea(
@@ -127,6 +132,7 @@ class _AdvancedCodeEditorState extends State<AdvancedCodeEditor> {
           },
         ),
       ),
+      endDrawer: widget.aisidebar,
     );
   }
 }

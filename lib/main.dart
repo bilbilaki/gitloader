@@ -1,48 +1,145 @@
 import 'package:flutter/material.dart';
-import 'package:gitloader/ai/chat_service.dart';
-import 'package:gitloader/code_forge.dart'; // Assuming this contains AdvancedCodeEditor
-import 'package:gitloader/widgets/ai_sidebar.dart';
-import 'package:path/path.dart' as p;
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-// Import the logic for downloading/extracting
-import 'ai/config.dart';
+import 'entries.dart';
 import 'repo_loader.dart';
+import 'screens/pkg_search_screen.dart';
+import 'utils/colors.dart';
+import 'widgets/repo_browser_scaffold.dart';
 
-void main() {
+void main() {  WidgetsFlutterBinding.ensureInitialized();
+
+  // Optional: makes system UI match true-black style.
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Color(0xFF000000),
+    systemNavigationBarIconBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.light,
+  ));
+
+
   runApp(const GitLoaderApp());
 }
 
 // Global selection state to keep track of files across navigation
 final Set<String> selectedPaths = {};
 
-class AppColors {
-  static const bg = Color(0xFF0D1117);
-  static const surface = Color(0xFF161B22);
-  static const border = Color(0xFF30363D);
-  static const accent = Color(0xFF58A6FF);
-  static const textPrimary = Color(0xFFC9D1D9);
-  static const textSecondary = Color(0xFF8B949E);
-  static const folder = Color(0xFFE3B341);
-  static const file = Color(0xFF7D8590);
-}
-
 class GitLoaderApp extends StatelessWidget {
   const GitLoaderApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: AppColors.bg,
-        colorScheme: const ColorScheme.dark(primary: AppColors.accent),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-
+  Widget build(BuildContext context) {    const bg = Color(0xFF000000);
+    const surface = Color(0xFF0B0B0F);
+    const surface2 = Color(0xFF111118);
+    const border = Color(0xFF24242C);
+    const accent = Color(0xFF7C4DFF); // premium violet accent
+    const accent2 = Color(0xFF00E5FF); // cyan hint (used subtly)
+     final base = ThemeData(
+     brightness: Brightness.dark,
+      useMaterial3: true,
+      scaffoldBackgroundColor: bg,
+      colorScheme: const ColorScheme.dark(
+        surface: surface,
+        surfaceContainerHighest: surface2,
+        primary: accent,
+        secondary: accent2,
+        outline: border,
+      ),
+      splashFactory: InkSparkle.splashFactory,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: bg,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: Colors.white,
         ),
       ),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFF1C1C24),
+        thickness: 1,
+        space: 1,
+      ),
+      cardTheme: CardThemeData(
+        color: surface,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: border, width: 1),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surface,
+        hintStyle: const TextStyle(color: Color(0xFF9A9AAA)),
+        labelStyle: const TextStyle(color: Color(0xFFEDEDF5)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: accent, width: 1.4),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF111118),
+        contentTextStyle: const TextStyle(color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      textTheme: const TextTheme(
+        titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        bodyLarge: TextStyle(fontSize: 15, height: 1.35),
+        bodyMedium: TextStyle(fontSize: 14, height: 1.35),
+        labelLarge: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+
+    final textTheme = GoogleFonts.interTextTheme(base.textTheme).copyWith(
+      titleLarge: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, height: 1.15),
+      titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, height: 1.2),
+      bodyLarge: GoogleFonts.inter(fontSize: 15.5, fontWeight: FontWeight.w500, height: 1.45),
+      bodyMedium: GoogleFonts.inter(fontSize: 14.5, fontWeight: FontWeight.w500, height: 1.45),
+      labelLarge: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w700, height: 1.2),
+      labelMedium: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, height: 1.2),
+    );
+
+    final theme = base.copyWith(
+      textTheme: textTheme,
+      appBarTheme: AppBarTheme(
+        backgroundColor: bg,
+        elevation: 0,
+        titleTextStyle: textTheme.titleMedium?.copyWith(color: Colors.white),
+      ),
+      cardTheme: CardThemeData(
+        color: surface,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: border, width: 1),
+        ),
+      ),
+    );
+    
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: theme,
       home: const RemoteLoaderPage(),
     );
   }
@@ -93,6 +190,60 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
     }
   }
 
+  void _loadLocalRepo() async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage = "Selecting local repository...";
+    });
+
+    try {
+      // Use file_picker to select a directory
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Select Git Repository Folder',
+      );
+
+      if (selectedDirectory == null) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = "No directory selected";
+        });
+        return;
+      }
+
+      // Check if the selected directory contains a .git folder
+      final gitDir = Directory('$selectedDirectory/.git');
+      if (!await gitDir.exists()) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = "Selected folder is not a Git repository";
+        });
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = null;
+        });
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RepoBrowserScaffold(
+              path: selectedDirectory,
+              title: "Local Repository",
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _statusMessage = "Error: $e";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,15 +253,23 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.auto_awesome_motion, size: 80, color: AppColors.accent),
+              const Icon(
+                Icons.auto_awesome_motion,
+                size: 80,
+                color: AppColors.accent,
+              ),
               const SizedBox(height: 24),
               const Text(
                 "GitLoader",
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
-                "Enter a GitHub URL to explore and edit code",
+                "Enter a GitHub URL or select a local repository",
                 style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 40),
@@ -127,7 +286,10 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.accent,
+                      width: 2,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -141,25 +303,93 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     foregroundColor: Colors.white,
-                    shape: Platform.isAndroid 
-                        ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                        : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: Platform.isAndroid
+                        ? RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("EXPLORE REPO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      : const Text(
+                          "EXPLORE REMOTE REPO",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _loadLocalRepo,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.textPrimary,
+                    shape: Platform.isAndroid
+                        ? RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                    side: const BorderSide(color: AppColors.accent, width: 1),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.folder_open, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "SELECT LOCAL REPOSITORY",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+                       SizedBox(height: 20,),
+                ElevatedButton(onPressed: (){
+                    Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FileSearchEntry(),
+          ),
+        );
+                }, child: Text("Search files and content")),
+                                       SizedBox(height: 20,),
+                ElevatedButton(onPressed: (){
+                    Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GoPackageSearchPage(),
+          ),
+        );
+                }, child: Text("Search packages and libraries")),
               if (_statusMessage != null) ...[
                 const SizedBox(height: 20),
                 Text(
                   _statusMessage!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _statusMessage!.startsWith("Error") ? Colors.redAccent : AppColors.accent,
+                    color: _statusMessage!.startsWith("Error") ||
+                            _statusMessage!.contains("not a Git repository")
+                        ? Colors.redAccent
+                        : AppColors.accent,
                   ),
                 ),
-              ]
+       
+              ],
             ],
           ),
         ),
@@ -168,189 +398,4 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
   }
 }
 
-class RepoBrowserScaffold extends StatefulWidget {
-  final String path; // The Root Path downloaded
-  final String title;
 
-  const RepoBrowserScaffold({super.key, required this.path, required this.title});
-
-  @override
-  State<RepoBrowserScaffold> createState() => _RepoBrowserScaffoldState();
-}
-
-class _RepoBrowserScaffoldState extends State<RepoBrowserScaffold> {
-  ChatService? _chatService;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  @override
-  void initState() {
-    super.initState();
-    _initAI();
-  }
-
-  void _initAI() async {
-    // Load config (make sure Config.load() works in your existing config.dart)
-    final cfg = await Config.load();
-    setState(() {
-      // Initialize service with the repo ROOT path
-      _chatService = ChatService(cfg, widget.path);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [
-          // Button to toggle AI Sidebar
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline),
-            onPressed: () {
-              _scaffoldKey.currentState?.openEndDrawer();
-            },
-          ),
-        ],
-      ),
-      body: RepoBrowser(path: widget.path),
-      // The Sidebar
-      endDrawer: _chatService == null 
-          ? const Drawer(child: Center(child: CircularProgressIndicator()))
-          : AiSidebar(chatService: _chatService!),
-    );
-  }
-}
-
-class RepoBrowser extends StatefulWidget {
-  final String path;
-  const RepoBrowser({super.key, required this.path});
-
-  @override
-  State<RepoBrowser> createState() => _RepoBrowserState();
-}
-
-class _RepoBrowserState extends State<RepoBrowser> {
-  List<FileSystemEntity> _files = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFiles();
-  }
-
-  void _loadFiles() {
-    final dir = Directory(widget.path);
-    try {
-      final List<FileSystemEntity> entities = dir.listSync();
-      entities.sort((a, b) {
-        if (a is Directory && b is! Directory) return -1;
-        if (a is! Directory && b is Directory) return 1;
-        return a.path.toLowerCase().compareTo(b.path.toLowerCase());
-      });
-
-      setState(() {
-        _files = entities.where((e) => !p.basename(e.path).startsWith('.')).toList();
-      });
-    } catch (e) {
-      debugPrint("Error loading files: $e");
-    }
-  }
-
-  void _navigateTo(FileSystemEntity entity) {
-    if (entity is Directory) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RepoBrowserScaffold(
-            path: entity.path,
-            title: p.basename(entity.path),
-          ),
-        ),
-      ).then((_) => setState(() {})); // Re-build on return to refresh checkboxes
-    } else if (entity is File) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => AdvancedCodeEditor(file: entity)),
-      );
-    }
-  }
-
-  void _toggleSelection(String path) {
-    setState(() {
-      if (selectedPaths.contains(path)) {
-        selectedPaths.remove(path);
-      } else {
-        selectedPaths.add(path);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_files.isEmpty) {
-      return const Center(child: Text("Empty directory", style: TextStyle(color: AppColors.textSecondary)));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _files.length,
-      itemBuilder: (context, index) {
-        final entity = _files[index];
-        final isDir = entity is Directory;
-        final name = p.basename(entity.path);
-        final isSelected = selectedPaths.contains(entity.path);
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: InkWell(
-            onTap: () => _navigateTo(entity),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected ? AppColors.accent.withOpacity(0.5) : AppColors.border,
-                ),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.only(left: 8, right: 16),
-                leading: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Checkbox(
-                      value: isSelected,
-                      activeColor: AppColors.accent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      onChanged: (_) => _toggleSelection(entity.path),
-                    ),
-                    Icon(
-                      isDir ? Icons.folder_rounded : Icons.description_outlined,
-                      color: isDir ? AppColors.folder : AppColors.file,
-                      size: 28,
-                    ),
-                  ],
-                ),
-                title: Text(
-                  name,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.accent : AppColors.textPrimary,
-                    fontWeight: isDir ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: 15,
-                  ),
-                ),
-                trailing: isDir 
-                  ? const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20)
-                  : Text(
-                      "${(File(entity.path).lengthSync() / 1024).toStringAsFixed(1)} KB",
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
