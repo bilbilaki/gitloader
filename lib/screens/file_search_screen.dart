@@ -1,5 +1,8 @@
 
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +12,7 @@ import 'package:worker_manager/worker_manager.dart';
 import 'package:path/path.dart' as path_pkg;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../main.dart';
 import '../models/file_content.dart';
 import '../models/diff_hunk.dart';
 import '../services/search_service.dart';
@@ -235,11 +239,8 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
       final List<Cancelable> tasks = (_foundFiles.map((file) {
         return workerManager.execute(
           (String content, String regexPattern, bool include) {
-                content:
                 file.content;
-                regexPattern:
                 pattern;
-                include:
                 _isPostSearchContentInclude;
                 // This code runs in an isolate
                 final RegExp workerRegex = RegExp(
@@ -349,8 +350,9 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
 
     // Full scan as a fallback for robustness
     for (int i = 0; i <= list.length - sublist.length; i++) {
-      if (i >= searchStart && i <= searchEnd)
+      if (i >= searchStart && i <= searchEnd) {
         continue; // Skip already searched area
+      }
 
       if (list[i] == sublist[0]) {
         bool isMatch = true;
@@ -406,11 +408,13 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
           newContent,
         );
       } else {
-        print(
+        if (kDebugMode) {
+          print(
           'Error: Could not apply hunk for lines starting around ${hunk.oldStartLine} '
           'in file (pattern: ${searchPattern.take(3).join(', ')}...). '
           'File content may have diverged too much. Skipping this hunk.',
         );
+        }
         // In a real app, you might collect these errors to display to the user.
       }
     }
@@ -445,9 +449,10 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
 
       previewContent.add('--- Diff Preview for: $filePath ---');
       previewContent.add('Original (first 10 lines):');
-      previewContent.addAll(originalLines.take(10).map((l) => ' ${l}'));
-      if (originalLines.length > 10)
+      previewContent.addAll(originalLines.take(10).map((l) => ' $l'));
+      if (originalLines.length > 10) {
         previewContent.add('... (${originalLines.length - 10} more lines)');
+      }
 
       previewContent.add('\nProposed Changes (Diff Hunks):');
       for (final hunk in hunks) {
@@ -460,9 +465,10 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
       previewContent.add(
         '\nNew Content (first 10 lines, after applying diff):',
       );
-      previewContent.addAll(newLines.take(10).map((l) => ' ${l}'));
-      if (newLines.length > 10)
+      previewContent.addAll(newLines.take(10).map((l) => ' $l'));
+      if (newLines.length > 10) {
         previewContent.add('... (${newLines.length - 10} more lines)');
+      }
       previewContent.add('\n');
     }
 
@@ -566,7 +572,9 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
                 } catch (e) {
                   allApplied = false;
                   _showError('Failed to apply diff to $filePath: $e');
-                  print('Apply diff error for $filePath: $e');
+                  if (kDebugMode) {
+                    print('Apply diff error for $filePath: $e');
+                  }
                 }
               }
               if (allApplied) {
@@ -665,7 +673,13 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
            leading: IconButton(
              icon: const Icon(Icons.arrow_back),
              onPressed: () {
-               Navigator.pop(context); // This pops the screen and goes back
+                                   Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GitLoaderApp(),
+          ),
+        );// This pops the screen and goes back
+
              },
            ),
       ),

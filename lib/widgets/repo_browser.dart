@@ -1,7 +1,7 @@
 import 'dart:io';
-
+import 'drawershell.dart';
 import 'package:flutter/material.dart';
-import 'package:gitloader/main.dart';
+import '../main.dart';
 import 'package:path/path.dart' as p;
 
 import 'code_forge.dart';
@@ -62,7 +62,16 @@ class _RepoBrowserState extends State<RepoBrowser> {
     } else if (entity is File) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => AdvancedCodeEditor(file: entity,aisidebar: widget.aisidebar,)),
+        MaterialPageRoute(
+          builder: (_) => EditorWithExplorerShell(
+            projectRoot: Directory(widget.path),
+            editorBuilder: (entity, sidebar) => AdvancedCodeEditor(
+              file: entity,
+              aisidebar: sidebar,
+            ),
+            aisidebar: widget.aisidebar,
+          ),
+        ),
       );
     }
   }
