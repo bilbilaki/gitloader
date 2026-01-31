@@ -18,6 +18,7 @@ import '../models/diff_hunk.dart';
 import '../services/search_service.dart';
 import '../services/diff_service.dart';
 import '../widgets/file_result_list.dart';
+import '../ai/file_filters.dart';
 
 class FileSearchScreen extends StatefulWidget {
   const FileSearchScreen({super.key});
@@ -178,6 +179,7 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
           .where((type) => type.isNotEmpty)
           .toList();
 
+      final filter = await AiFileFilter.load();
       await _searchService.searchFiles(
         directoryPath: selectedPath!,
         allowedExtensions: fileExtensions,
@@ -187,6 +189,8 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
         excludeFileNamePatterns: _excludeFileNamePatternController.text,
         isPathFilteringEnabled: _isPathPatternFilteringEnabled,
         isFileNameFilteringEnabled: _isFileNamePatternFilteringEnabled,
+        filter: filter,
+        rootPath: selectedPath!,
       );
 
       _showSuccess('Search completed! Found $totalFilesFound files');
@@ -631,6 +635,7 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
         final outputPath = '${tempDir.path}/$fileName';
         final File outputFile = File(outputPath);
         await outputFile.writeAsString(buffer.toString());
+        // ignore: deprecated_member_use
         await Share.shareXFiles([
           XFile(outputPath),
         ], text: 'Exported selected files');
@@ -1266,6 +1271,8 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
   Future<String> _generateFileTree(
     String directoryPath, [
     String prefix = '',
+    String? rootPath,
+    AiFileFilter? filter,
   ]) async {
     final buffer = StringBuffer();
     final directory = Directory(directoryPath);
@@ -1274,11 +1281,19 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
       return '';
     }
 
-    final List<FileSystemEntity> entities = directory.listSync(recursive: false)
-      ..sort(
-        (a, b) =>
-            path_pkg.basename(a.path).compareTo(path_pkg.basename(b.path)),
-      );
+    final AiFileFilter activeFilter = filter ?? await AiFileFilter.load();
+    final String basePath = rootPath ?? directoryPath;
+    final List<FileSystemEntity> entities = [];
+    for (final entity in directory.listSync(recursive: false)) {
+      final String relative = path_pkg
+          .relative(entity.path, from: basePath)
+          .replaceAll(r'\', '/');
+      if (activeFilter.isHidden(relative)) continue;
+      entities.add(entity);
+    }
+    entities.sort(
+      (a, b) => path_pkg.basename(a.path).compareTo(path_pkg.basename(b.path)),
+    );
 
     for (int i = 0; i < entities.length; i++) {
       final entity = entities[i];
@@ -1289,7 +1304,14 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
       buffer.writeln('$prefix$newPrefix${path_pkg.basename(entity.path)}');
 
       if (entity is Directory) {
-        buffer.write(await _generateFileTree(entity.path, prefix + nextPrefix));
+        buffer.write(
+          await _generateFileTree(
+            entity.path,
+            prefix + nextPrefix,
+            basePath,
+            activeFilter,
+          ),
+        );
       }
     }
     return buffer.toString();
@@ -1402,7 +1424,9 @@ class _FileSearchScreenState extends State<FileSearchScreen> {
       );
     } catch (e) {
       _showError('Error generating file tree: $e');
-      print('File tree generation error: $e');
+      if (kDebugMode) {
+        print('File tree generation error: $e');
+      }
     }
   }
 

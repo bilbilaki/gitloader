@@ -12,7 +12,6 @@ import 'repo_loader.dart';
 import 'screens/pkg_search_screen.dart';
 import 'utils/colors.dart';
 import 'widgets/repo_browser_scaffold.dart';
-import 'widgets/terminal.dart';
 
 void main() {  WidgetsFlutterBinding.ensureInitialized();
 
@@ -425,16 +424,6 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
         return;
       }
 
-      // Check if the selected directory contains a .git folder
-      final gitDir = Directory('$selectedDirectory/.git');
-      if (!await gitDir.exists()) {
-        setState(() {
-          _isLoading = false;
-          _statusMessage = "Selected folder is not a Git repository";
-        });
-        return;
-      }
-
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -459,11 +448,7 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
       appBar: AppBar(
        leading: IconButton(
              icon: const Icon(Icons.terminal),
-             onPressed: () {   Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MultiTabTerminalScreen(),
-          ),);
+             onPressed: () {   
                                   
              },
            ),
@@ -606,8 +591,7 @@ class _RemoteLoaderPageState extends State<RemoteLoaderPage> {
                   _statusMessage!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _statusMessage!.startsWith("Error") ||
-                            _statusMessage!.contains("not a Git repository")
+                    color: _statusMessage!.startsWith("Error")
                         ? Colors.redAccent
                         : AppColors.accent,
                   ),
@@ -694,5 +678,3 @@ class _ConflictResolution {
 }
 
 enum _ConflictAction { rename, replace, cancel }
-
-

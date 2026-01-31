@@ -15,6 +15,8 @@ class Config {
   String currentModel = '';
   bool autoAccept = true;
   bool firstSetup = true;
+  List<String> hiddenIncludePatterns = [];
+  List<String> hiddenExcludePatterns = [];
 
   static final ValueNotifier<int> _reloadNotifier = ValueNotifier(0);
 
@@ -40,7 +42,9 @@ class Config {
         ..proxyUrl = map['proxy_url'] ?? ""
         ..currentModel = map['current_model'] ?? ''
         ..autoAccept = map['auto_accept'] ?? false
-        ..firstSetup = map['first_setup'] ?? false;
+        ..firstSetup = map['first_setup'] ?? false
+        ..hiddenIncludePatterns = _stringList(map['hidden_include'])
+        ..hiddenExcludePatterns = _stringList(map['hidden_exclude']);
     } catch (_) {
       return Config();
     }
@@ -59,8 +63,17 @@ class Config {
         'current_model': currentModel,
         'auto_accept': autoAccept,
         'first_setup': firstSetup,
+        'hidden_include': hiddenIncludePatterns,
+        'hidden_exclude': hiddenExcludePatterns,
       }),
     );
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    return [];
   }
 
   static Future<String> _getConfigPath() async {
@@ -114,6 +127,8 @@ class _ConfigEditorState extends State<ConfigEditor> {
   late TextEditingController _baseUrlController;
   late TextEditingController _proxyUrlController;
   late TextEditingController _currentModelController;
+  late TextEditingController _hiddenIncludeController;
+  late TextEditingController _hiddenExcludeController;
   bool _autoAccept = true;
   bool _firstSetup = true;
   List<String> _availableModels = [];
@@ -142,6 +157,12 @@ class _ConfigEditorState extends State<ConfigEditor> {
     _baseUrlController = TextEditingController(text: config.baseUrl);
     _proxyUrlController = TextEditingController(text: config.proxyUrl);
     _currentModelController = TextEditingController(text: config.currentModel);
+    _hiddenIncludeController = TextEditingController(
+      text: config.hiddenIncludePatterns.join('\n'),
+    );
+    _hiddenExcludeController = TextEditingController(
+      text: config.hiddenExcludePatterns.join('\n'),
+    );
     _autoAccept = config.autoAccept;
     _firstSetup = config.firstSetup;
     _selectedModel =
@@ -252,6 +273,7 @@ class _ConfigEditorState extends State<ConfigEditor> {
         SnackBar(content: Text('Failed to fetch models: $e')),
       );
     } finally {
+      // ignore: control_flow_in_finally
       if (!mounted) return;
       setState(() {
         _isFetchingModels = false;
@@ -271,6 +293,8 @@ class _ConfigEditorState extends State<ConfigEditor> {
         : (_selectedModel ?? _currentModelController.text).trim();
     config.autoAccept = _autoAccept;
     config.firstSetup = _firstSetup;
+    config.hiddenIncludePatterns = _parseLines(_hiddenIncludeController.text);
+    config.hiddenExcludePatterns = _parseLines(_hiddenExcludeController.text);
 
     try {
       await config.save();
@@ -291,7 +315,17 @@ class _ConfigEditorState extends State<ConfigEditor> {
     _baseUrlController.dispose();
     _proxyUrlController.dispose();
     _currentModelController.dispose();
+    _hiddenIncludeController.dispose();
+    _hiddenExcludeController.dispose();
     super.dispose();
+  }
+
+  List<String> _parseLines(String value) {
+    return value
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -423,6 +457,29 @@ class _ConfigEditorState extends State<ConfigEditor> {
                 title: const Text('Auto Accept'),
                 value: _autoAccept,
                 onChanged: (value) => setState(() => _autoAccept = value),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'AI File Filters',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _hiddenExcludeController,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  labelText: 'Hide patterns (one per line)',
+                  hintText: 'node_modules/\n**/*.log\nbuild/\n.venv/',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _hiddenIncludeController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Always include patterns (override)',
+                  hintText: 'build/keep/**\n**/README.md',
+                ),
               ),
               SwitchListTile(
                 title: const Text('First Setup'),

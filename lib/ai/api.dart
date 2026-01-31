@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:gitloader/ai/models.dart';
 
 class Message {
   String role;
@@ -42,12 +43,12 @@ class FunctionCall {
   Map<String, dynamic> toJson() => {'name': name, 'arguments': arguments};
 }
 
-class Tool {
-  final String type;
-  final Map<String, dynamic> function;
-  Tool({this.type = "function", required this.function});
-  Map<String, dynamic> toJson() => {'type': type, 'function': function};
-}
+// class Tool {
+//   final String type;
+//   final Map<String, dynamic> function;
+//   Tool({this.type = "function", required this.function});
+//   Map<String, dynamic> toJson() => {'type': type, 'function': function};
+// }
 
 class ApiClient {
   final String apiKey;

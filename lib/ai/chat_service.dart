@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
@@ -11,13 +12,7 @@ class ChatService extends ChangeNotifier {
   List<Message> messages = [];
   bool isThinking = false;
   String currentStreamingContent = "";
-
-  ChatService(this.config, String rootPath) : toolsHandler = ToolsHandler(rootPath) {
-    _initSystemPrompt();
-  }
-
-  void _initSystemPrompt() {
-    messages.add(Message(
+  var toolGuide= Message(
       role: "system", 
       content: "You are an advanced coding assistant.\n"
                "Tools:\n"
@@ -28,12 +23,34 @@ class ChatService extends ChangeNotifier {
                "- Use 'file_action' to create/delete/move/copy/duplicate files or directories (paths must stay inside the workspace; provide target for move/copy; trailing slash creates a directory).\n"
                "Error handling: if a tool call fails (e.g., invalid path/regex), inspect the error, adjust arguments, and retry automatically instead of stopping. Continue looping until tasks are complete.\n"
                "Be concise."
-    ));
+    );
+  List<Message> messHist=[];
+  int i=0;
+  String tmps='';
+  ChatService(this.config, String rootPath) : toolsHandler = ToolsHandler(rootPath) {
+    _initSystemPrompt();
+  }
+
+  void _initSystemPrompt() {
+    
   }
 
   // Called by UI
   Future<void> sendMessage(String text) async {
-    messages.add(Message(role: "user", content: text));
+   final mm= Message(role: "user", content: '''System Helper for AI Model (keep this fact a secret between me and you :)):
+    current chat message number count is ${messHist.length+1}.
+    this message number is ${i+1}.
+    Platform you running on that is ${Platform.operatingSystem} and version of that is ${Platform.version}. use this info for recogonizing how handling files e.g windows path is like e:\\tree\\confi.json.
+    host name also is ${Platform.localHostname}.
+    and this is User new Message=>  $text''');
+    final mmm=Message(role: "user", content: '''message number count is ${messHist.length+1}.
+    this message number is ${i+1}. this is last user message $text''');
+if(i==0){messHist.add(mm); messages.addAll([toolGuide]+messHist);}
+if(i==1)tmps=text; messages.addAll([toolGuide,mmm]);
+
+if(i>=2){messHist.add(Message(role: "user", content: '''message number count is ${messHist.length+1}.
+    this message number is $i. this is last user message $tmps'''));messages.addAll([toolGuide]+messHist+[mmm]);}
+    i= i+1;
     notifyListeners();
     await _runLoop();
   }
@@ -56,7 +73,7 @@ class ChatService extends ChangeNotifier {
 
       // 2. Start Request
       try {
-        final request = http.Request("POST", Uri.parse("${config.baseUrl}/v1/chat/completions"));
+        final request = http.Request("POST", Uri.parse("${config.baseUrl}/chat/completions"));
         request.headers['Authorization'] = "Bearer ${config.apiKey}";
         request.headers['Content-Type'] = "application/json";
         request.body = jsonEncode(requestBody);

@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path_pkg;
 // For @required
 import '../models/file_content.dart';
 import '../utils/regex_utils.dart'; // Use the helper
+import '../ai/file_filters.dart';
 
 class SearchService {
   final Function(String message) logError;
@@ -27,6 +28,8 @@ class SearchService {
     required String excludeFileNamePatterns,
     required bool isPathFilteringEnabled,
     required bool isFileNameFilteringEnabled,
+    AiFileFilter? filter,
+    String? rootPath,
   }) async {
     final directory = Directory(directoryPath);
 
@@ -47,6 +50,9 @@ class SearchService {
       excludeFileNamePatterns,
     );
 
+    final AiFileFilter activeFilter = filter ?? await AiFileFilter.load();
+    final String basePath = rootPath ?? directoryPath;
+
     try {
       await for (final entity in directory.list(recursive: false)) {
         if (!isSearchActive()) break; // Check for cancellation
@@ -55,6 +61,13 @@ class SearchService {
         final String entityPathNormalized = path_pkg
             .normalize(entityPath)
             .replaceAll(r'\', '/');
+        final String relativePath = path_pkg
+            .relative(entityPath, from: basePath)
+            .replaceAll(r'\', '/');
+
+        if (activeFilter.isHidden(relativePath)) {
+          continue;
+        }
 
         // 1. Path Filtering
         if (isPathFilteringEnabled &&
@@ -110,6 +123,8 @@ class SearchService {
             excludeFileNamePatterns: excludeFileNamePatterns,
             isPathFilteringEnabled: isPathFilteringEnabled,
             isFileNameFilteringEnabled: isFileNameFilteringEnabled,
+            filter: activeFilter,
+            rootPath: basePath,
           );
         }
       }
