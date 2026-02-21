@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "gitloader",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "gitloader (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "gitloader (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "code_forge",
+            "cwd": "code_forge",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "code_forge (profile mode)",
+            "cwd": "code_forge",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "code_forge (release mode)",
+            "cwd": "code_forge",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
